@@ -14,22 +14,28 @@ Bu doküman proje kurulumu ve yerel geliştirme adımlarını içerir.
    docker compose up -d --build
    ```
 
-2. **Migration dosyalarını oluşturun (gerekliyse)**
+2. **Veritabanının hazır olmasını bekleyin**
+   ```bash
+   docker compose ps
+   docker compose logs -f db
+   ```
+
+3. **Migration dosyalarını oluşturun (gerekliyse)**
    ```bash
    docker compose exec django-archaeology python manage.py makemigrations
    ```
 
-3. **Veritabanı migrationlarını çalıştırın**
+4. **Veritabanı migrationlarını çalıştırın**
    ```bash
    docker compose exec django-archaeology python manage.py migrate
    ```
 
-4. **(Opsiyonel) Admin kullanıcı oluşturun**
+5. **(Opsiyonel) Admin kullanıcı oluşturun**
    ```bash
    docker compose exec django-archaeology python manage.py createsuperuser
    ```
 
-5. **Uygulamayı görüntüleyin**
+6. **Uygulamayı görüntüleyin**
    - Uygulama: http://localhost:8000
    - PgAdmin (opsiyonel): http://localhost:80 (admin@admin.com / root)
 
@@ -67,3 +73,17 @@ Gerekirse bu değerleri `.env` dosyası üzerinden değiştirip `docker-compose.
 
 > Not: `DB_ENGINE` tanımlı değilse SQLite kullanılır. PostgreSQL kullanmak için
 > `DB_ENGINE=postgres` ve ilgili `POSTGRES_*` değişkenlerini tanımlayın.
+
+## Sorun Giderme
+
+**Migrate sırasında `Name or service not known` hatası alıyorum**
+
+- `db` servisinin sağlıklı olduğundan emin olun:
+  ```bash
+  docker compose ps
+  docker compose logs -f db
+  ```
+- `django-archaeology` konteynerini yeniden başlatın:
+  ```bash
+  docker compose restart django-archaeology
+  ```
