@@ -9,4 +9,5 @@ urlpatterns = [
     path("delete/<id>", delete_document, name="delete-document"),
     path("update/<id>", update_document, name="update-document"),
     path('get-html/<id>/', get_html_content, name='get-html-content'),
+    path('get-pdf/<id>/', get_pdf_content, name='get-pdf-content'),
 ]
