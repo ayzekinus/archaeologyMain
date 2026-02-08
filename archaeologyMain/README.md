@@ -14,17 +14,22 @@ Bu doküman proje kurulumu ve yerel geliştirme adımlarını içerir.
    docker compose up -d --build
    ```
 
-2. **Veritabanı migrationlarını çalıştırın**
+2. **Migration dosyalarını oluşturun (gerekliyse)**
+   ```bash
+   docker compose exec django-archaeology python manage.py makemigrations
+   ```
+
+3. **Veritabanı migrationlarını çalıştırın**
    ```bash
    docker compose exec django-archaeology python manage.py migrate
    ```
 
-3. **(Opsiyonel) Admin kullanıcı oluşturun**
+4. **(Opsiyonel) Admin kullanıcı oluşturun**
    ```bash
    docker compose exec django-archaeology python manage.py createsuperuser
    ```
 
-4. **Uygulamayı görüntüleyin**
+5. **Uygulamayı görüntüleyin**
    - Uygulama: http://localhost:8000
    - PgAdmin (opsiyonel): http://localhost:80 (admin@admin.com / root)
 
