@@ -1,0 +1,38 @@
+<div class="row p-1">
+
+    <p>TEST STARTS</p>
+    <hr>
+
+    {% for field in buluntuform %}
+        <div class="form-group">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {{ field.errors }}
+        </div>
+    {% endfor %}
+    
+</div>
+
+
+<div class="card-header mt-3 mb-3">Diğer Bilgiler</div>
+<hr>
+
+<div class="row p-1">
+
+       
+        <div>
+            <label for="{{form.amount.auto_id}}">{{form.amount.label}}</label>
+            {{form.amount}}
+        </div>
+
+       <div>
+        <label for="{{form.defination.auto_id}}">{{form.defination.label}}</label>
+        {{form.defination}}
+       </div>
+
+
+    </div>
+
+
+
+

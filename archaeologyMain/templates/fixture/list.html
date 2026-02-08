@@ -1,0 +1,525 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block site-title %}
+Demirbaş Listesi
+{% endblock site-title %}
+
+
+{% block site-content %}
+<script src="{% static '/js/document.js' %}"></script>
+<div class="container">
+  {% if messages %}
+  <div class="messages">
+      {% for message in messages %}
+          <!-- Bootstrap alert sınıflarını kullanarak mesajları stilize edin -->
+          {% if message.tags == 'success' %}
+              <div class="alert alert-success" role="alert">
+                  {{ message }}
+              </div>
+          {% elif message.tags == 'error' %}
+              <div class="alert alert-danger" role="alert">
+                  {{ message }}
+              </div>
+          {% elif message.tags == 'warning' %}
+              <div class="alert alert-warning" role="alert">
+                  {{ message }}
+              </div>
+          {% elif message.tags == 'info' %}
+              <div class="alert alert-info" role="alert">
+                  {{ message }}
+              </div>
+          {% else %}
+              <div class="alert alert-primary" role="alert">
+                  {{ message }}
+              </div>
+          {% endif %}
+      {% endfor %}
+  </div>
+{% endif %}
+
+  <!-- Django Filter Start -->
+  <form id="filterForm" method="get" action="{% url 'fixture-liste' %}">
+    <div class="card p-5 mt-5">
+      <div class="card-header">Detaylı Arama</div>
+      <div class="row justify-content-center align-items-center mt-4 mb-4 mt-md-5 mb-md-5 gy-2">
+        <div class="col-sm-6 col-xl-2">
+          <label for="id_name" class="mb-1 text-nowrap">Demirbaş Adı</label>
+          {{form.name}}
+        </div>
+        <div class="col-sm-6 col-xl-2">
+          <label for="id_marka" class="mb-1 text-nowrap">Demirbaş Marka</label>
+          {{form.marka}}
+        </div>
+        <div class="col-sm-6 col-xl-2">
+          <label for="id_model" class="mb-1 text-nowrap">Demirbaş Model</label>
+          {{form.model}}
+        </div>
+        <div class="col-sm-6 col-xl-2">
+          <label for="id_piece" class="mb-1 text-nowrap">Demirbaş Adet</label>
+          {{form.piece}}
+        </div>
+        <div class="col-sm-6 col-xl-2">
+          <label for="id_piece" class="mb-1 text-nowrap">Demirbaş Zimmetli Kişi</label>
+          {{form.custodian}}
+        </div>
+        <div class="col-xl-2 d-inline-flex d-xl-inline-block align-items-center justify-content-center align-self-end mt-3">
+          <div class="btn-group" role="group" aria-label="Filtreleme İşlemleri">
+            <button id="clearFilter" type="button" class="btn btn-secondary">Temizle</button>
+            <button type="submit" class="btn btn-success">Filtrele</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+  </form>
+  <div class="card mt-5 p-5">
+    <div class="table-responsive">
+      <table class="table table-striped" id="tablo">
+        <!-- Tablo başlıkları -->
+        <thead>
+          <tr>
+            <th class="text-nowrap" scope="col">Demirbaş Adı</th>
+            <th class="text-nowrap" scope="col">Marka</th>
+            <th class="text-nowrap" scope="col">Model</th>
+            <th class="text-nowrap" scope="col">Adet</th>
+            <th class="text-nowrap" scope="col">Toplam Fiyat</th>
+            <th class="text-nowrap" scope="col">Alım Tarihi</th>
+            <th class="text-nowrap" scope="col">Bulunduğu Yer</th>
+            <th class="text-nowrap" scope="col">Zimmetli Kişi</th>
+            {% if request.user.is_superuser or request.user.isModerator == True %}
+            <th class="text-nowrap">İşlemler</th>
+            {% endif %}
+          </tr>
+        </thead>
+        <!-- Tablo verileri -->
+        <tbody>
+          {% for fixture in fixtures %}
+          <tr>
+            <td scope="row">{{ fixture.name }}</td>
+            <td>{{ fixture.marka }}</td>
+            <td>{{ fixture.model }}</td>
+            <td>{{ fixture.piece }}</td>
+            <td>{{ fixture.totalprice }}</td>
+            <td class="text-nowrap">{{ fixture.dateofaddition|date:"d F Y"  }}</td>
+            <td>
+              <div class="truncate truncate-3-lines">
+                {{ fixture.where }}
+              </div>
+            </td>
+            <td>{{ fixture.custodian }}</td>
+            {% if request.user.is_superuser or request.user.isModerator == True %}
+            <td>
+              <div class="d-flex flex-column flex-md-row text-center">
+                <a href="#" class="mb-2 me-md-3" data-bs-toggle="modal" data-bs-target="#deletealert{{ fixture.id }}">
+                  <i class="fa-solid fa-trash text-danger"></i>
+                </a>
+                <a href="#" class="mb-2 me-md-3" data-bs-toggle="modal" data-bs-target="#updateModal{{ fixture.id }}">
+                  <i id="modal_open" class="fa-solid fa-pencil"></i>
+                </a>
+                <a href="#" data-bs-toggle="modal" data-bs-target="#viewModal{{ fixture.id }}">
+                  <i class="fa-solid fa-magnifying-glass"></i>
+                </a>
+                <a href="#" class="mb-2 mx-2 me-md-3">
+                  <button class="text-success" onclick="downloadOtherHTMLAsPDF({{ fixture.id }})"><i class="fa-solid fa-file-pdf "></i></button>
+                </a>
+              </div>
+            </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="text-center">
+      <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+          {% if fixtures.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page=1" aria-label="First">
+              <span aria-hidden="true">&laquo;&laquo;</span>
+            </a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ fixtures.previous_page_number }}" aria-label="Previous">
+              <span aria-hidden="true">&laquo;</span>
+            </a>
+          </li>
+          {% endif %}
+
+          <li class="page-item disabled">
+            <span class="page-link">Page {{ fixtures.number }} of {{ fixtures.paginator.num_pages }}</span>
+          </li>
+
+          {% if fixtures.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ fixtures.next_page_number }}" aria-label="Next">
+              <span aria-hidden="true">&raquo;</span>
+            </a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ fixtures.paginator.num_pages }}" aria-label="Last">
+              <span aria-hidden="true">&raquo;&raquo;</span>
+            </a>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+  </div>
+  <!-- Modals for each report -->
+  {% for fixture in fixtures %}
+  <!-- Modal Delete -->
+  <div class="modal fade" id="deletealert{{ fixture.id }}" tabindex="-1" aria-labelledby="exampleModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="exampleModalLabel">
+            Silmek İstediğinizden Emin Misiniz?
+          </h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-footer justify-content-center">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            Vazgeç
+          </button>
+          <a href="{% url 'fixture-delete' fixture.id %}"><button type="button" class="btn btn-danger">Sil</button></a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Modal Delete End -->
+
+  <!-- Update Modal -->
+  <div class="modal fade" id="updateModal{{ fixture.id }}" tabindex="-1" role="dialog"
+    aria-labelledby="updateModalLabel{{ fixture.id }}" aria-hidden="true">
+    <div class="modal-dialog" role="document" style="max-width: 900px; max-height: 1500px">
+      <div class="modal-content">
+        <form method="post" action="{% url 'fixture-update' fixture.id %}" class="update-form"
+          enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="modal-header">
+            <h5 class="modal-title" id="updateModalLabel{{ fixture.id }}">
+              Fixture Güncelle
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            {% for form_id, form in updateForms.items %}
+            {% if form_id == fixture.id %}
+            <div class="row p-3">
+              <div class="col-md-4">
+                <label for="id_name" class="form-label">Demirbaş Adı</label>
+                {{form.name}}
+              </div>
+
+              <div class="col-md-4">
+                <label for="id_marka" class="form-label">Marka</label>
+                {{form.marka}}
+              </div>
+
+              <div class="col-md-4">
+                <label for="id_model" class="form-label">Model</label>
+                {{form.model}}
+              </div>
+
+              <div class="col-md-3">
+                <label for="id_piece" class="form-label">Adet</label>
+                {{form.piece}}
+              </div>
+
+              <div class="col-md-3">
+                <label for="id_unitprice" class="form-label">Birim Fiyatı</label>
+                {{form.unitprice}}
+              </div>
+
+              <div class="col-md-3">
+                <label for="id_taxrate" class="form-label">Tax Rate</label>
+                {{form.taxrate}}
+              </div>
+
+              <div class="col-md-3">
+                <label for="id_totalprice" class="form-label">Toplam Fiyat</label>
+                {{form.totalprice}}
+              </div>
+
+              <div class="row">
+                <div class="col-md-4">
+                  <label for="id_typeofaddition" class="form-label">Alış Şekli</label>
+                  {{form.typeofaddition}}
+                </div>
+
+                <div class="col-md-4">
+                  <label for="id_dateofaddition" class="form-label">Alım Tarihi</label>
+                  {{form.dateofaddition}}
+                </div>
+
+                <div class="col-md-4">
+                  <label for="id_where" class="form-label">Bulunduğu Yer</label>
+                  {{form.where}}
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="row">
+                    <div class="col-md-6">
+                      <label for="id_custodian" class="form-label">Zimmetli Kişi</label>
+                      {{form.custodian}}
+                    </div>
+                    <div class="col-md-6">
+                      <label for="id_barcode" class="form-label">Barkod Numarası</label>
+                      {{form.barcode}}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-header mt-5">Firma Bilgileri</div>
+
+            <div class="card p-4">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="row">
+                    <div class="col-md-6">
+                      <label for="id_companyName" class="form-label">Firma Adı</label>
+                      {{form.companyName}}
+                    </div>
+                    <div class="col-md-6">
+                      <label for="id_companyOfficial" class="form-label">Firma Yetkilisi</label>
+                      {{form.companyOfficial}}
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="col-md-6">
+                      <label for="id_companyPhone" class="form-label">Firma Telefon</label>
+                      {{form.companyPhone}}
+                    </div>
+                    <div class="col-md-6">
+                      <label for="id_companyEmail" class="form-label">Firma Email</label>
+                      {{form.companyEmail}}
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <label for="id_companyAddress" class="form-label">Firma Adresi</label>
+                  {{form.companyAddress}}
+                </div>
+              </div>
+            </div>
+
+            <div class="card-header mt-5">
+              <div class="row">
+                <div class="col-md-6">Demirbaş Alım Belgesi</div>
+                <div class="col-md-6">Demirbaş Açıklama</div>
+              </div>
+            </div>
+
+            <div class="card p-3">
+              <div class="row">
+                <div class="col-md-6">
+                  <label for="id_fixtureFile" class="form-label">Demirbaş Alım Belgesi</label>
+                  {{form.fixtureFile}}
+                </div>
+                <div class="col-md-6">
+                  <label for="id_fixtureDescription" class="form-label">Demirbaş Açıklama</label>
+                  {{form.fixtureDescription}}
+                </div>
+              </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+              Kapat
+            </button>
+            <button type="submit" class="btn btn-primary">Kaydet</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <script src="{% static '/js/tinyhtml.js' %}"></script>
+  <!-- Update Modal End -->
+
+  <!-- View Modal -->
+  <div class="modal fade" id="viewModal{{ fixture.id }}" tabindex="-1" role="dialog"
+    aria-labelledby="viewModalLabel{{ fixture.id }}" aria-hidden="true">
+    <div class="modal-dialog" role="document" style="max-width: 900px; max-height: 1500px">
+      <div class="modal-content">
+        <form id="viewForm{{ fixture.id }}" class="update-form"
+        enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title" id="updateModalLabel{{ fixture.id }}">
+            Fixture Detayları
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          {% for form_id, form in updateForms.items %}
+          {% if form_id == fixture.id %}
+          <div class="row p-3">
+            <div class="col-md-4">
+              <label for="id_name" class="form-label">Demirbaş Adı</label>
+              {{form.name}}
+            </div>
+
+            <div class="col-md-4">
+              <label for="id_marka" class="form-label">Marka</label>
+              {{form.marka}}
+            </div>
+
+            <div class="col-md-4">
+              <label for="id_model" class="form-label">Model</label>
+              {{form.model}}
+            </div>
+
+            <div class="col-md-3">
+              <label for="id_piece" class="form-label">Adet</label>
+              {{form.piece}}
+            </div>
+
+            <div class="col-md-3">
+              <label for="id_unitprice" class="form-label">Birim Fiyatı</label>
+              {{form.unitprice}}
+            </div>
+
+            <div class="col-md-3">
+              <label for="id_taxrate" class="form-label">Tax Rate</label>
+              {{form.taxrate}}
+            </div>
+
+            <div class="col-md-3">
+              <label for="id_totalprice" class="form-label">Toplam Fiyat</label>
+              {{form.totalprice}}
+            </div>
+
+            <div class="row">
+              <div class="col-md-4">
+                <label for="id_typeofaddition" class="form-label">Alış Şekli</label>
+                {{form.typeofaddition}}
+              </div>
+
+              <div class="col-md-4">
+                <label for="id_dateofaddition" class="form-label">Alım Tarihi</label>
+                {{form.dateofaddition}}
+              </div>
+
+              <div class="col-md-4">
+                <label for="id_where" class="form-label">Bulunduğu Yer</label>
+                {{form.where}}
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="row">
+                  <div class="col-md-6">
+                    <label for="id_custodian" class="form-label">Zimmetli Kişi</label>
+                    {{form.custodian}}
+                  </div>
+                  <div class="col-md-6">
+                    <label for="id_barcode" class="form-label">Barkod Numarası</label>
+                    {{form.barcode}}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card-header mt-5">Firma Bilgileri</div>
+
+          <div class="card p-4">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="row">
+                  <div class="col-md-6">
+                    <label for="id_companyName" class="form-label">Firma Adı</label>
+                    {{form.companyName}}
+                  </div>
+                  <div class="col-md-6">
+                    <label for="id_companyOfficial" class="form-label">Firma Yetkilisi</label>
+                    {{form.companyOfficial}}
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-6">
+                    <label for="id_companyPhone" class="form-label">Firma Telefon</label>
+                    {{form.companyPhone}}
+                  </div>
+                  <div class="col-md-6">
+                    <label for="id_companyEmail" class="form-label">Firma Email</label>
+                    {{form.companyEmail}}
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="card-header px-3 border-bottom-0">
+                  <label for="id_companyAddress" >Firma Adresi</label>
+                </div>
+                <div id="fixtureDetail{{ fixture.id }}" style="background-color: var(--bs-secondary-bg);"
+                    class="form-control px-3">
+                    {{ fixture.companyAddress|safe }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card-header mt-5">Fixture Belge ve Açıklama</div>
+          <div class="card p-4">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="card-header px-3 border-bottom-0">
+                  <label>Demirbaş Alım Belgesi</label>
+                </div>
+                <div class="form-control px-3">
+                  <a href="{{fixture.fixtureFile.url}}" target="_blank"> {{fixture.fixtureFile}}</a>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="card-header px-3 border-bottom-0">
+                  <label for="id_fixtureDescription">Demirbaş Açıklama</label>
+                </div>
+                <div id="fixtureDetail{{ fixture.id }}" style="background-color: var(--bs-secondary-bg);"
+                  class="form-control px-3">
+                  {{ fixture.fixtureDescription|safe }}
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            Kapat
+          </button>
+        </div>
+      </form>
+      </div>
+    </div>
+  </div>
+  <!-- View Modal End -->
+  {% endfor %}
+</div>
+<script src="{% static 'js/calculateModal.js' %}"></script>
+<script>
+  $(document).ready(function () {
+    // Tüm inputları devre dışı bırak
+    {% for fixture in fixtures %}
+      disableFormFields('viewModal{{ fixture.id }}');
+    $(`#fixtureDetail{{ fixture.id }}`).find('p').css('margin', '0')
+    {% endfor %}
+  });
+
+  function disableFormFields(modalId) {
+    $(`#${modalId}`).find('input, select, textarea').prop('disabled', true);
+  }
+</script>
+<script type="text/javascript" src="{% static 'js/clearFilters.js' %}"></script>
+{% endblock site-content %}
