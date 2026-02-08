@@ -7,7 +7,6 @@ from django.template.loader import render_to_string
 from .filters import DocumentFilter
 from .forms import *
 from .models import *
-from xhtml2pdf import pisa
 import io
 
 
@@ -89,3 +88,22 @@ def get_html_content(request,id):
     document = DocumentCreateModel.objects.get(id=id)
     html_content = render_to_string('document/print.html', {'document': document})
     return HttpResponse(html_content, content_type="text/html")
+
+
+@login_required(login_url="homepage")
+def get_pdf_content(request, id):
+    document = DocumentCreateModel.objects.get(id=id)
+    html_content = render_to_string('document/print.html', {'document': document})
+    result = io.BytesIO()
+    from xhtml2pdf import pisa
+
+    pdf_status = pisa.CreatePDF(
+        io.BytesIO(html_content.encode("utf-8")),
+        dest=result,
+    )
+    if pdf_status.err:
+        return HttpResponse("PDF oluşturulamadı.", status=500)
+
+    response = HttpResponse(result.getvalue(), content_type="application/pdf")
+    response["Content-Disposition"] = f'inline; filename="document-{id}.pdf"'
+    return response
